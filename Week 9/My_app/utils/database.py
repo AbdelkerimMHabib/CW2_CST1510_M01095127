@@ -17,7 +17,7 @@ def get_user(conn, username):
     return cursor.fetchone()
 
 def add_data(conn, a, b, c):
-    """Add data to table (customize as necessary)."""
+    """Add data to table """
     with conn:
         conn.execute("INSERT INTO data (column_a, column_b, column_c) VALUES (?, ?, ?)", (a, b, c))
 
