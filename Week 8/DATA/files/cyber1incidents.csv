@@ -1,0 +1,8 @@
+title,severity,status,date
+Phishing attack detected,High,open,2025-01-10
+Ransomware attempt,Critical,closed,2025-02-05
+Unauthorized login attempt,Medium,open,2025-02-18
+Data breach detected,High,open,2025-03-01
+Malware infection detected,Low,closed,2025-03-07
+
+

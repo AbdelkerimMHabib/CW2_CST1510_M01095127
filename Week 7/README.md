@@ -1,4 +1,4 @@
-#Project for module CST1510
+# Project for module CST1510
 
 # Week 7: Secure Authentication System
 
