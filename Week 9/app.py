@@ -19,7 +19,7 @@ df = pd.DataFrame({
 })
 
 st.write("Here is a small dataframe:")
-st.dataframe(df) #scrollable, sortbale data
+st.dataframe(df) 
 
 st.divider
 

@@ -1,71 +1,100 @@
-
+# My_app/pages/1_Dashboard.py
 import streamlit as st
+from utils.database import connect_database, get_all_incidents, insert_incident, update_incident, delete_incident, get_all_datasets, get_all_tickets
 import pandas as pd
-import numpy as np
-from utils.database import connect_database, add_data, get_data, update_data, delete_data
 
-st.set_page_config(
-    page_title="Dashboard",
-    page_icon="📊",
-    layout="wide"
-)
-
-if "logged_in" not in st.session_state or not st.session_state.logged_in:
-    st.error("You must be logged in to view the dashboard.")
-    if st.button("Go to login page"):
+# Protect page
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if not st.session_state.logged_in:
+    st.error("You must be logged in to view this page")
+    if st.button("Go to login"):
         st.switch_page("Home.py")
     st.stop()
 
-# Connect to the database
-conn = connect_database('DATA/intelligence_platform.db')
-
-# Dashboard Page
+st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 st.title("📊 Dashboard")
-st.success(f"Hello, **{st.session_state.username}**! You are logged in.")
+st.success(f"Welcome, {st.session_state.username}!")
 
-# Sidebar filters
-with st.sidebar:
-    st.header("Filters")
-    n_points = st.slider("Number of data points", 10, 200, 50)
+conn = connect_database()
 
-# Generate and display demo data
-data = pd.DataFrame(
-    np.random.randn(n_points, 3),
-    columns=["A", "B", "C"]
-)
 
-# Save data to the database 
-if st.button("Save Data to Database"):
-    for index, row in data.iterrows():
-        add_data(conn, row['A'], row['B'], row['C']) 
+st.header("Cyber Incidents")
 
-st.subheader("Data")
-if st.button("Load Data from Database"):
-    loaded_data = get_data(conn)
-    st.write(loaded_data)
+incidents = get_all_incidents(conn)
+if incidents:
+    df_incidents = pd.DataFrame([dict(row) for row in incidents])
+    st.dataframe(df_incidents, use_container_width=True)
+else:
+    st.info("No incidents in the database.")
 
-# CRUD Operations
-st.subheader("CRUD Operations")
+with st.expander("Add new incident"):
+    with st.form("new_incident"):
+        title = st.text_input("Incident Title")
+        severity = st.selectbox("Severity", ["Low", "Medium", "High", "Critical"])
+        status = st.selectbox("Status", ["open", "in progress", "closed", "resolved"])
+        date = st.date_input("Date")
+        submitted = st.form_submit_button("Add Incident")
+        if submitted and title:
+            insert_incident(conn, title, severity, status, date.isoformat())
+            st.success("Incident added.")
+            st.experimental_rerun()
 
-# Update data
-update_column = st.selectbox("Select row to update", range(len(data)))
-new_value = st.number_input("New Value", value=data.at[update_column, 'A'])
+with st.expander("Edit or delete an incident"):
+    if incidents:
+        options = [f"{r['id']}: {r['title']}" for r in incidents]
+        choice = st.selectbox("Pick an incident", options)
+        if choice:
+            iid = int(choice.split(":")[0])
+            inc = next((r for r in incidents if r["id"] == iid), None)
+            if inc:
+                title_u = st.text_input("Title", inc["title"])
+                severity_u = st.selectbox("Severity", ["Low", "Medium", "High", "Critical"], index=["Low","Medium","High","Critical"].index(inc["severity"]) if inc["severity"] in ["Low","Medium","High","Critical"] else 0)
+                status_u = st.text_input("Status", inc["status"])
+                date_u = st.text_input("Date", inc["date"])
+                if st.button("Update incident"):
+                    update_incident(conn, iid, title_u, severity_u, status_u, date_u)
+                    st.success("Incident updated.")
+                    st.experimental_rerun()
+                if st.button("Delete incident"):
+                    delete_incident(conn, iid)
+                    st.success("Incident deleted.")
+                    st.experimental_rerun()
 
-if st.button("Update Data"):
-    update_data(conn, update_column, new_value)
-    st.success("Data updated successfully!")
 
-# Delete data
-delete_index = st.selectbox("Select row to delete", range(len(data)))
-if st.button("Delete Data"):
-    delete_data(conn, delete_index)
-    st.success("Data deleted successfully!")
+st.header("Datasets")
+datasets = get_all_datasets(conn)
+if datasets:
+    df_datasets = pd.DataFrame([dict(r) for r in datasets])
+    st.dataframe(df_datasets, use_container_width=True)
+else:
+    st.info("No datasets found.")
 
-# Logout section
+st.header("IT Tickets")
+tickets = get_all_tickets(conn)
+if tickets:
+    df_tickets = pd.DataFrame([dict(r) for r in tickets])
+    st.dataframe(df_tickets, use_container_width=True)
+else:
+    st.info("No tickets found.")
+
+
 st.divider()
+st.subheader("Domain Metrics")
 
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Threats Detected", int(len(incidents)), delta="+0")
+with col2:
+    vuln_count = df_datasets.shape[0] if 'df_datasets' in locals() else 0
+    st.metric("Datasets", vuln_count)
+with col3:
+    st.metric("IT Tickets", int(len(tickets)), delta="0")
+
+# Logout
+st.divider()
 if st.button("Log out"):
     st.session_state.logged_in = False
     st.session_state.username = ""
-    st.info("You have been logged out.")
+    st.info("You have been logged out")
     st.switch_page("Home.py")

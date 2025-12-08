@@ -9,7 +9,7 @@ with st.sidebar:
     st.header("Controls")
     n_points = st.slider("Number of points", 10, 500, 100)
     show_table = st.checkbox("Show raw data")
-# ---- MAIN CONTENT ----
+
 st.header("Main Content")
 # Create some random data
 data = pd.DataFrame(
